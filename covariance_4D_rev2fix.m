@@ -162,9 +162,9 @@ function covariance_4D()
         for l = 1:L_4D
             lm = sub2ind(size(LM_write), l, m);
             for p = 1:np
-                print_shape('UX2{p}(:,lm)', st.UX2{p}(:,lm));
+                %print_shape('UX2{p}(:,lm)', st.UX2{p}(:,lm));
                 planes(:,:,p) = reshape(st.UX1_S{p}*st.UX2{p}(:,lm),I_4D,J_4D);
-                print_shape(sprintf('planes after pair %d product', p), planes);
+                %print_shape(sprintf('planes after pair %d product', p), planes);
                 if with_mrs
                     ratios = st.X1_max{p} ./ st.X2_max{p}(l,m);
                     print_shape('ratios', ratios);
@@ -174,11 +174,11 @@ function covariance_4D()
                     print_shape(sprintf('planes after pair %d MRS weighting', p), planes);
                 end
             end
-            print_shape('planes before clipping negatives', planes);
+            %print_shape('planes before clipping negatives', planes);
             planes(planes(:) < 0) = 0;  % Anything negative is an artifact
-            print_shape('planes after clipping negatives', planes);
+            %print_shape('planes after clipping negatives', planes);
             final_plane = prod(planes, 3);
-            print_shape('final_plane', final_plane);
+            %print_shape('final_plane', final_plane);
             if num_percents == 0
                 % Single file
                 if lm == 1
