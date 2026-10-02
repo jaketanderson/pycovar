@@ -1,6 +1,7 @@
 % covariance_4D_rev2.m
 % Reading of the nmrPipe header has been updated to work for all DIMORDER
 % 2018-03-30 - BH/AK/DF
+% Shape printing (for debug purposes) was added by Claude Sonnet 5.5 at direction of Jake
 function covariance_4D()
 
     %====================== EDIT THESE PARAMETERS ONLY =========================
