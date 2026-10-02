@@ -1,0 +1,104 @@
+# From Luca M. September 26, 2026
+# Package for all builds
+# Core Scientific Stack (versioned)
+biopython==1.81
+ipython==8.12.0
+llvmlite==0.45  # uv crashes for 0.46
+matplotlib~=3.7.3
+numpy==1.26.4
+pandas==1.5.3
+pyopengl==3.1.10
+pyopengl-accelerate==3.1.10
+pyqt5
+pyqtgraph==0.13.1
+qtconsole==5.3
+reportlab>=3.5.70
+scipy==1.10.1
+seaborn==0.12
+urllib3==1.26
+# Unversioned packages
+alabaster
+asteval
+babel
+certifi
+cffi
+cmake
+cryptography
+cython
+decorator
+docutils
+emcee
+fontconfig-py
+freetype-py
+future
+gitpython
+h5py
+hjson
+icu
+idna
+imageio
+jax
+jedi
+jupyter_client
+lmfit
+lxml
+memory_profiler
+nmrglue
+nmrsim
+numba
+numdifftools
+onedep_api
+openpyxl
+openssl-engine
+pyzmq
+path
+pillow
+pint
+psutil
+py7za
+pycodestyle
+pycurl
+pyflakes
+pynmrstar
+pyqode-core
+pyqode-python
+pyqode-qt
+pytest
+python-docx
+python-pptx
+qtawesome
+qtpy
+rdkit
+requests
+scikit-learn
+scipy-openblas64
+sip
+sphinx
+sympy
+tabulate
+threadpoolctl
+tqdm
+traitlets
+xlrd
+xlsxwriter
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# New for dynamics (versioned)
+chemex==2022.3.6
+# unversioned packages
+aiosignal
+attrs
+contourpy
+mdanalysis
+pdb-tools
+pint
+pydantic
+python-socketio
+toml
+uncertainties
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mdtraj
+openmm
+matplotlib-venn[shapely]
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# OS specific
+#pywin32; sys_platform=="win32"
