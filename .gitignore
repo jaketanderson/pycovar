@@ -1,1 +1,3 @@
 *.pipe
+.ipynb_checkpoints/
+.DS_store/
