@@ -167,11 +167,11 @@ function covariance_4D()
                 %print_shape(sprintf('planes after pair %d product', p), planes);
                 if with_mrs
                     ratios = st.X1_max{p} ./ st.X2_max{p}(l,m);
-                    print_shape('ratios', ratios);
+                    %print_shape('ratios', ratios);
                     W = 1./exp(abs(log(ratios)));
-                    print_shape('W', W);
+                    %print_shape('W', W);
                     planes(:,:,p) = planes(:,:,p) .* W;
-                    print_shape(sprintf('planes after pair %d MRS weighting', p), planes);
+                    %print_shape(sprintf('planes after pair %d MRS weighting', p), planes);
                 end
             end
             %print_shape('planes before clipping negatives', planes);
@@ -228,6 +228,17 @@ end
 
 function print_shape(name, A)
     fprintf('%s: %s\n', name, mat2str(size(A)));
+    if isempty(A)
+        return;
+    end
+    r = min(3, size(A,1));
+    c = min(3, size(A,2));
+    A = reshape(A, size(A,1), size(A,2), []);
+    fmt = ['    ' repmat('%14.6g', 1, c) '\n'];
+    fprintf('  first %dx%d (rows 1:%d, cols 1:%d, page 1):\n', r, c, r, c);
+    fprintf(fmt, A(1:r, 1:c, 1).');
+    fprintf('  last %dx%d (final rows/cols, page %d):\n', r, c, size(A,3));
+    fprintf(fmt, A(end-r+1:end, end-c+1:end, end).');
 end
 
 function structure = load_spectra( filenames, extract_IJLM, extract_K )

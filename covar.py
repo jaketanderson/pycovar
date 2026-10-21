@@ -1,9 +1,13 @@
+import sys
+
 import nmrglue as glue
 import numpy as np
 import scipy
 
 specheader, specarr = glue.fileio.pipe.read("HCcH.pipe")
 specheader, specarr = glue.fileio.pipe.transpose_3D(specheader, specarr, axes=(2,1,0))  # Transpose so 1H is third dim
+# 1H is complex, stored as alternating real and imaginary points
+specarr = specarr[..., 0::2] + 1j * specarr[..., 1::2]
 print(f"{'Spectrum dimensions:':<22}{specarr.shape}")
 udic = glue.pipe.guess_udic(specheader, specarr)
 dimlabels = [udic[i]["label"] for i in range(udic["ndim"])]
@@ -98,6 +102,15 @@ def create_4D_dic(dics, sizes, downsample, labels, data, filename):
     return dic
 
 
+# How the complex shared dimension enters the covariance:
+#   "real"    - only the real part is used (same as the MATLAB script)
+#   "complex" - SVD of the complex matrix; the real part of each plane is kept
+#   "split"   - real and imaginary parts side by side as separate real points
+# Pass it on the command line (python covar.py complex); the default is "real"
+mode = sys.argv[1] if len(sys.argv) > 1 else "real"
+if mode not in ("real", "complex", "split"):
+    raise ValueError(f"Unknown mode: {mode}")
+
 spectra = [specarr, specarr]
 I, J, K = spectra[0].shape
 L, M, _ = spectra[1].shape
@@ -105,8 +118,12 @@ L, M, _ = spectra[1].shape
 stacked = np.vstack([spectra[0].reshape(I * J, K, order="F"),
                      spectra[1].reshape(L * M, K, order="F")])
 
-# MATLAB reads float32 data into doubles, so work in float64 to match
-stacked = np.diff(stacked.astype(np.float64), n=1, axis=1)
+# MATLAB reads float32 data into doubles, so work in double precision to match
+stacked = np.diff(stacked.astype(np.complex128), n=1, axis=1)
+if mode == "real":
+    stacked = stacked.real
+elif mode == "split":
+    stacked = np.hstack([stacked.real, stacked.imag])
 
 U, S, _ = scipy.linalg.svd(stacked, full_matrices=False)
 
@@ -120,8 +137,13 @@ LM_write = (np.arange(0, L, downsample[2])[:, None]
             + np.arange(0, M, downsample[3])[None, :] * L).ravel(order="F")
 
 UX1_S = U[IJ_write, :] * S ** (2 * lambda_factor)
-UX2 = U[I * J + LM_write, :].T
+UX2 = U[I * J + LM_write, :].conj().T
 del stacked, U  # Clear some memory
+if mode == "complex":
+    # Only the real part of UX1_S @ UX2 is kept, which is this product of
+    # real matrices with twice as many components
+    UX1_S = np.hstack([UX1_S.real, -UX1_S.imag])
+    UX2 = np.vstack([UX2.real, UX2.imag])
 
 # Scale data to keep peak heights reasonable and prevent float overflow
 n_pairs = 1
@@ -144,7 +166,7 @@ for start in range(0, L_4D * M_4D, 500):
 data_4D = data_4D.reshape(M_4D, L_4D, J_4D, I_4D)
 spec_4D = data_4D.transpose(3, 2, 1, 0)  # View indexed (I, J, L, M)
 
-filename_4D = "4D_HCCH_python.pipe"
+filename_4D = f"4D_HCCH_python_{mode}.pipe"
 labels_4D = ["H", "C", "Hs", "Cs"]
 
 if filename_4D.count("%") == 1:
