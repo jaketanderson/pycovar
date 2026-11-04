@@ -1,15 +1,49 @@
+# covar.py
+#
+# v0.0
+# Jake Anderson, October 2026
+
 import sys
 
 import nmrglue as glue
 import numpy as np
 import scipy
 
-specheader, specarr = glue.fileio.pipe.read("HCcH.pipe")
+from tqdm import tqdm
+
+# Currently this script only does self-covariance (for quick testing)
+
+# How the shared dimension enters the covariance:
+#   "real"    - a real spectrum is read and used as is (same as the MATLAB script)
+#   "complex" - SVD of the complex matrix; the real part of each plane is kept
+#   "split"   - real and imaginary parts side by side as separate real points. This is weird and for testing.
+# Pass it on the command line (e.g. "python covar.py complex"); the default is "real"
+# If you are using anything but "real", you will need to provide 3Ds that have complex values in the covaried dimension
+
+
+lambda_factor = 1.0  # Use 0.5 for matrix square rooting
+downsample = [1, 1, 1, 1]
+use_derivative = False
+
+
+mode = sys.argv[1] if len(sys.argv) > 1 else "real"
+if mode not in ("real", "complex", "split"):
+    raise ValueError(f"Unknown mode: {mode}")
+
+specdir = "/public/groups/frueh/jaanderson/data/Ybt/PCP1/apo/nmr/251001_Apo_HNC_PCP1_1402-1482/20/LR/"
+specfile = specdir + ("HCcH_real.pipe" if mode == "real" else "HCcH_complex.pipe")
+specheader, specarr = glue.fileio.pipe.read(specfile)
+# This is a fragile fix for my one spectrum! Needs fixing for generality.
 specheader, specarr = glue.fileio.pipe.transpose_3D(specheader, specarr, axes=(2,1,0))  # Transpose so 1H is third dim
-# 1H is complex, stored as alternating real and imaginary points
-specarr = specarr[..., 0::2] + 1j * specarr[..., 1::2]
-print(f"{'Spectrum dimensions:':<22}{specarr.shape}")
 udic = glue.pipe.guess_udic(specheader, specarr)
+if udic[2]["complex"] != (mode != "real"):
+    kind = "real" if mode == "real" else "complex"
+    raise ValueError(f"Mode '{mode}' needs a spectrum whose 1H dimension is "
+                     f"{kind}, but {specfile} is not")
+if mode != "real":
+    # Complex 1H is stored as alternating real and imaginary points
+    specarr = specarr[..., 0::2] + 1j * specarr[..., 1::2]
+print(f"{'Spectrum dimensions:':<22}{specarr.shape}")
 dimlabels = [udic[i]["label"] for i in range(udic["ndim"])]
 print(f"{'Dimension labels:':<22}{dimlabels}")
 
@@ -32,6 +66,7 @@ def rescale_pair(UX1_S, UX2, mps):
     return UX1_S, UX2
 
 
+# This is the most complex and difficult part of the script. It was written by Claude
 def create_4D_dic(dics, sizes, downsample, labels, data, filename):
     """Build the NMRPipe header of the 4D from the headers of a spectrum pair.
 
@@ -102,15 +137,6 @@ def create_4D_dic(dics, sizes, downsample, labels, data, filename):
     return dic
 
 
-# How the complex shared dimension enters the covariance:
-#   "real"    - only the real part is used (same as the MATLAB script)
-#   "complex" - SVD of the complex matrix; the real part of each plane is kept
-#   "split"   - real and imaginary parts side by side as separate real points
-# Pass it on the command line (python covar.py complex); the default is "real"
-mode = sys.argv[1] if len(sys.argv) > 1 else "real"
-if mode not in ("real", "complex", "split"):
-    raise ValueError(f"Unknown mode: {mode}")
-
 spectra = [specarr, specarr]
 I, J, K = spectra[0].shape
 L, M, _ = spectra[1].shape
@@ -119,16 +145,16 @@ stacked = np.vstack([spectra[0].reshape(I * J, K, order="F"),
                      spectra[1].reshape(L * M, K, order="F")])
 
 # MATLAB reads float32 data into doubles, so work in double precision to match
-stacked = np.diff(stacked.astype(np.complex128), n=1, axis=1)
-if mode == "real":
-    stacked = stacked.real
-elif mode == "split":
+dtype = np.float64 if mode == "real" else np.complex128
+stacked = stacked.astype(dtype)
+if use_derivative:
+    stacked = np.diff(stacked, n=1, axis=1)
+if mode == "split":
     stacked = np.hstack([stacked.real, stacked.imag])
 
+print("Performing SVD...")
 U, S, _ = scipy.linalg.svd(stacked, full_matrices=False)
-
-lambda_factor = 0.5
-downsample = [1, 1, 1, 1]
+print("SVD completed.")
 
 # Row indices to keep in the downsampled 4D (column-major, like MATLAB)
 IJ_write = (np.arange(0, I, downsample[0])[:, None]
@@ -159,14 +185,14 @@ L_4D, M_4D = len(range(0, L, downsample[2])), len(range(0, M, downsample[3]))
 # NMRPipe stores float32 with the first dimension varying fastest, which is
 # C order for an array indexed (M, L, J, I)
 data_4D = np.empty((L_4D * M_4D, I_4D * J_4D), dtype=np.float32)
-for start in range(0, L_4D * M_4D, 500):
+for start in tqdm(range(0, L_4D * M_4D, 500), desc="Calculating blocks..."):
     block = UX2.T[start:start + 500] @ UX1_S.T
     # Anything negative is an artifact
     np.maximum(block, 0, out=data_4D[start:start + 500], casting="same_kind")
 data_4D = data_4D.reshape(M_4D, L_4D, J_4D, I_4D)
 spec_4D = data_4D.transpose(3, 2, 1, 0)  # View indexed (I, J, L, M)
 
-filename_4D = f"4D_HCCH_python_{mode}.pipe"
+filename_4D = f"no_SR_no_deriv/4D_HCcH_python_{mode}.pipe"
 labels_4D = ["H", "C", "Hs", "Cs"]
 
 if filename_4D.count("%") == 1:

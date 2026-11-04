@@ -1,22 +1,25 @@
 % covariance_4D_rev2.m
 % Reading of the nmrPipe header has been updated to work for all DIMORDER
 % 2018-03-30 - BH/AK/DF
+% BH/AK/DF reserve their rights to the work they performed as the creators of the original version of this script
 % Shape printing (for debug purposes) was added by Claude Sonnet 5.5 at direction of Jake
 function covariance_4D()
 
     %====================== EDIT THESE PARAMETERS ONLY =========================
 
-    filenames = {'HCcH.pipe', 'HCcH.pipe'};
+    filenames = {'/public/groups/frueh/jaanderson/data/Ybt/PCP1/apo/nmr/251001_Apo_HNC_PCP1_1402-1482/20/LR/HCcH_real.pipe', '/public/groups/frueh/jaanderson/data/Ybt/PCP1/apo/nmr/251001_Apo_HNC_PCP1_1402-1482/20/LR/HCcH_real.pipe'};
     
     extract_IJLM = {};
    
     extract_K = {};
     
-    filename_4D = '4D_HCCH.pipe';
+    filename_4D = 'no_SR_no_deriv/4D_HCcH_matlab.pipe';
     
     labels_4D = {'H', 'C', 'Hs', 'Cs'};
     
-    lambda = 0.5;
+    lambda = 1.0;  % Use 0.5 for matrix square rooting
+    
+    use_derivative = false;
     
     with_mrs = false;
     
@@ -109,7 +112,9 @@ function covariance_4D()
         stacked = [ reshape(st.spectra{p,1}, I*J, []); ...
                     reshape(st.spectra{p,2}, L*M, [])  ];
         print_shape(sprintf('pair %d: stacked after stacking', p), stacked);
-        stacked = diff(stacked,1,2); % Take derivative
+        if use_derivative
+            stacked = diff(stacked,1,2); % Take derivative
+        end
         print_shape(sprintf('pair %d: stacked after diff', p), stacked);
         size(stacked)
         [U, S, ~] = svd(stacked, 'econ');

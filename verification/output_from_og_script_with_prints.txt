@@ -1,0 +1,42 @@
+>> covariance_4D_rev2fix()
+read_header: raw_header: [512 1]
+read_header: header after get_header_data: [26 4]
+read_header: header final: [26 4]
+read_header: raw_header: [512 1]
+read_header: header after get_header_data: [26 4]
+read_header: header final: [26 4]
+load_spectra: headers{1,1}: [26 4]
+load_spectra: headers{1,2}: [26 4]
+read_spectrum: raw data before reshape: [9228000 1]
+read_spectrum: spec after reshape: [150 80 769]
+read_spectrum: raw data before reshape: [9228000 1]
+read_spectrum: spec after reshape: [150 80 769]
+load_spectra: spectra{1,1} after read: [150 80 769]
+load_spectra: spectra{1,2} after read: [150 80 769]
+load_spectra: spectra{1,1} before extraction: [150 80 769]
+load_spectra: spectra{1,1} after extraction: [150 80 769]
+load_spectra: spectra{1,2} before extraction: [150 80 769]
+load_spectra: spectra{1,2} after extraction: [150 80 769]
+st.spectra{1,1} (loaded): [150 80 769]
+st.spectra{1,2} (loaded): [150 80 769]
+create_4D_header: header before downsample: [26 4]
+create_4D_header: header final: [26 4]
+header_4D: [26 4]
+IJ_write: [150 80]
+LM_write: [150 80]
+pair 1: spectra{p,1} before reshape: [150 80 769]
+pair 1: spectra{p,2} before reshape: [150 80 769]
+pair 1: stacked after stacking: [24000 769]
+pair 1: stacked after diff: [24000 768]
+
+ans =
+
+       24000         768
+
+pair 1: U after svd: [24000 768]
+pair 1: S after svd: [768 768]
+pair 1: UX1_S: [12000 768]
+pair 1: UX2: [768 12000]
+pair 1: bound: [1 1]
+planes (initialized): [150 80]
+>> 
