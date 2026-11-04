@@ -90,6 +90,21 @@ derivative on/off.
 wrong kind for the mode. Each mode reads its own file: `real` reads
 `HCcH_real.pipe`, the others read `HCcH_complex.pipe`.
 
+## Attribution
+
+Attribution of work and ideas is taken seriously in this project. Credit
+people and sources wherever reasonable:
+
+- **Git commits**: use authorship and trailers (e.g. `Co-Authored-By`) so
+  that everyone who contributed, human or AI, is credited.
+- **Code comments**: when an algorithm, formula, or piece of code comes from
+  someone else (the original MATLAB script by BH/AK/DF, a paper, a
+  colleague's suggestion, an AI-generated suggestion), say so in a comment
+  next to it.
+- **Docs and notes**: cite the origin of methods, data, and results (papers,
+  lab members, upstream scripts) here and in READMEs or notebooks.
+- When unsure who deserves credit, ask rather than omit it.
+
 ## Known results and gotchas
 
 - **Python matches MATLAB.** Given the same input and settings, `covar.py
