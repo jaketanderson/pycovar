@@ -1,3 +1,13 @@
+# Spectra (NMRPipe data, projections, FIDs), in any directory
 *.pipe
+*.dat
+*.ft
+*.ft1
+*.ft2
+*.ft3
+*.ft4
+*.fid
+fid
+
 .ipynb_checkpoints/
 .DS_store
