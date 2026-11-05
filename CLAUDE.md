@@ -4,7 +4,7 @@ Python port of a MATLAB script that builds a 4D NMR spectrum by covariance
 (generalized indirect covariance, GIC) of 3D spectra that share one
 dimension. The current test case is an HCcH-TOCSY self-covariance: the 3D
 (1Hy, 13C, 1H) is covaried with itself over the directly detected 1H, giving a
-4D (H, C, Hs, Cs). Both inputs and outputs are NMRPipe files.
+4D (1Hy, 13C, 1Hys, 13Cs). Both inputs and outputs are NMRPipe files.
 
 Repo: https://github.com/jaketanderson/pycovar (owner: Jake Anderson,
 Frueh lab).
@@ -13,82 +13,97 @@ Frueh lab).
 
 | File | What it is |
 |---|---|
-| `covar.py` | The Python port. Self-covariance only (one spectrum used twice). |
-| `covariance_4D_rev2fix.m` | The original MATLAB script (rev2, 2018, BH/AK/DF), with debug shape printing and a `use_derivative` switch added. Supports several spectrum pairs, extraction limits and MRS weighting, which `covar.py` does not. |
-| `compare_modes.py` | Runs `covar.py` once per mode (`real`, `complex`, `split`). Its docstring's output name is out of date; outputs go wherever `filename_4D` in `covar.py` points. |
+| `pycovar/` | The Python port, as a small importable package (`axes`, `io`, `header`, `core`, `cli`). Covaries one spectrum with itself or two spectra that share a dimension. |
+| `covar.py` | Shim so `python covar.py ...` still works; same as `python -m pycovar`. |
+| `pyproject.toml` | Makes the package installable (`pip install -e .`). |
+| `tests/` | pytest suite on tiny synthetic NMRPipe files (`python -m pytest tests`). pytest is an optional dev dependency. |
+| `verification/covariance_4D_rev2fix.m` | The original MATLAB script (rev2, 2018, BH/AK/DF), with debug shape printing and a `use_derivative` switch added. Supports several spectrum pairs, extraction limits and MRS weighting, which `pycovar` does not. Leave it and the rest of `verification/` alone: it is the reference for checking the port. |
+| `verification/compare_modes.py` | **Out of date.** Runs the old `covar.py <mode>` with hard-coded inputs, which no longer exists. Use `python -m pycovar` once per mode instead. Left unedited on purpose. |
 | `testing.ipynb` | Scratch notebook for reading outputs with nmrglue. |
-| `requirements.txt` | The lab's shared package list (from Luca M.), much broader than this project needs. `covar.py` itself only needs `nmrglue`, `numpy`, `scipy`, `tqdm`. |
-| `covar.tar.gz` | Snapshot of `covar.py` + the `.m` file for sharing. Not in git. |
-| `{no,yes}_SR_{no,yes}_deriv/` | Output 4Ds for each parameter combination (see below). Not in git (`*.pipe` is ignored). |
+| `requirements.txt` | The lab's shared package list (from Luca M.), much broader than this project needs. `pycovar` only needs `nmrglue`, `numpy`, `scipy`, `tqdm`. |
+| `covar.tar.gz` | Old snapshot of `covar.py` + the `.m` file for sharing (before the package). Not in git. |
 | `*.dat`, `H.C.pipe` | 2D projections of a 4D (H.C, H.Hs, C.Cs, ...). They carry MATLAB's header values, so they were probably made from a MATLAB 4D. |
-
-## Paths are Jake's defaults: change them for your own data
-
-Every path in the scripts points into Jake's folders on NMRbox. They work as
-is only for Jake. Anyone else must edit them before running:
-
-- **Input spectrum** - `covar.py`: `specdir` and `specfile` near the top.
-  `covariance_4D_rev2fix.m`: `filenames` in the "EDIT THESE PARAMETERS" block.
-  Default input directory:
-  `/public/groups/frueh/jaanderson/data/Ybt/PCP1/apo/nmr/251001_Apo_HNC_PCP1_1402-1482/20/LR/`
-  - `HCcH_real.pipe`: 150 (1Hy) x 160 (13C) x 2048 (1H, real)
-  - `HCcH_complex.pipe`: the same spectrum with 1H complex (2048 complex points)
-- **Output file** - `filename_4D` in both scripts. It is relative to the
-  current directory, and its folder must already exist.
-- **Python environment** - Jake's conda env is
-  `/public/groups/frueh/jaanderson/miniconda3/envs/pycovar` (Python 3.11,
-  nmrglue 0.12, numpy 1.26.4, scipy 1.10.1). Other users need their own env
-  with `nmrglue numpy scipy tqdm`.
-- **MATLAB helpers** - the `.m` script calls `get_header_data` and
-  `write_covar2pipe`, which are **not in this repo**. They must be on the
-  MATLAB path. Where they live has not been recorded here; ask Jake.
 
 ## Running
 
 ```bash
-python covar.py real      # or: complex, split  (default: real)
-python compare_modes.py   # all three modes, one after another
+python -m pycovar SPEC_A.pipe -o out/4D.pipe              # self-covariance
+python -m pycovar SPEC_A.pipe SPEC_B.pipe -o out/4D.pipe  # cross-covariance
+python -m pycovar --help
 ```
 
-Run from the repo root so the relative output paths resolve. In MATLAB, run
-`covariance_4D_rev2fix` (it uses `waitbar`, so it expects a display).
+Put the options after the spectra. Main options: `--mode {auto,real,complex,split}`,
+`--lambda-factor` (0.5 = matrix square root, 1.0 = plain covariance),
+`--derivative` (first difference along the shared dimension before the SVD),
+`--downsample N` or `N N N N` (keep every n-th point per 4D axis), `--labels`,
+`--axes-a/--axes-b`, `--no-prompt`, `--overwrite`, `--log/--no-log`. A `%` pair
+in the output name writes 2D planes instead of one file.
 
-Settings are edited in the source, not passed as arguments:
+In MATLAB, run `verification/covariance_4D_rev2fix` (it uses `waitbar`, so it
+expects a display). It still has Jake's paths in its "EDIT THESE PARAMETERS"
+block, and calls `get_header_data` and `write_covar2pipe`, which are **not in
+this repo** (ask Jake).
 
-| Setting | `covar.py` | `.m` script | Meaning |
-|---|---|---|---|
-| Matrix power | `lambda_factor` | `lambda` | 0.5 = matrix square root ("SR"), 1.0 = plain covariance |
-| Derivative | `use_derivative` | `use_derivative` | First difference along the shared dimension before the SVD |
-| Downsampling | `downsample` | `downsample` | Keep every n-th point per 4D axis |
-| Output | `filename_4D` | `filename_4D` | `%` in the name writes planes instead of one file |
+Environment: Jake's conda env is
+`/public/groups/frueh/jaanderson/miniconda3/envs/pycovar` (Python 3.11,
+nmrglue 0.12, numpy 1.26.4, scipy 1.10.1). Others need `nmrglue numpy scipy
+tqdm` (`pip install -e .` pulls them in).
 
-The output folders are named after these settings:
-`yes_SR` = lambda 0.5, `no_SR` = lambda 1.0, `yes_deriv`/`no_deriv` =
-derivative on/off.
+As a library (`import pycovar` does no I/O and configures no logging; the
+package logs to `logging.getLogger("pycovar")`):
+
+```python
+import pycovar
+a, b = pycovar.load_pair("hcch.pipe")        # or two files; axes_a=/axes_b= to force
+res = pycovar.covariance_4D(a, b, downsample=2, lambda_factor=0.5)
+pycovar.write_4D(res, "out/4D.pipe")         # res.spec is indexed (I, J, L, M)
+```
+
+Example input for Jake:
+`/public/groups/frueh/jaanderson/data/Ybt/PCP1/apo/nmr/251001_Apo_HNC_PCP1_1402-1482/20/LR/`
+with `HCcH_real.pipe` (150 1Hy x 160 13C x 2048 1H, real) and `HCcH_complex.pipe`
+(the same with 1H complex).
 
 ## Conventions
 
 - The 3Ds are indexed (I, J, K) and (L, M, K); K is the shared dimension
-  and is summed out. The 4D is (I, J, L, M) = (H, C, Hs, Cs). It is written
-  in NMRPipe order (M, L, J, I) with X = F2, Y = F1, Z = F3, A = F4.
+  and is summed out. The 4D is (I, J, L, M). It is written in NMRPipe order
+  (M, L, J, I) with X = F2, Y = F1, Z = F3, A = F4. Default 4D labels come
+  from the input headers (e.g. `1Hy 13C 1Hys 13Cs`, an `s` added where
+  labels would repeat); the old names are `--labels H C Hs Cs`.
 - Output size = I x J x L x M x 4 bytes + a 2048-byte header, whatever the
-  mode. For the default input that is 150 x 160 x 150 x 160 -> 2.3 GB. The
+  mode. For the example input that is 150 x 160 x 150 x 160 -> 2.3 GB. The
   whole 4D is held in RAM as float32.
-- `covar.py` transposes the input with `axes=(2,1,0)` so that 1H is the last
-  axis. This is hardcoded for this spectrum, whose 1H is NMRPipe's Z
-  dimension. Check the transpose for any other spectrum.
+- **Axes.** The shared dimension is taken to be the direct dimension, header
+  block FDF2 (NMRPipe convention, whatever the storage order). Array axis `a`
+  is described by block `FDF{FDDIMORDER[2-a]}`; the example files store 1H as
+  the slowest axis, so they are permuted with `(2,1,0)`. If something looks
+  wrong (shared axis not FDF2 or not the largest, nuclei or ppm windows that
+  differ between A and B) the CLI shows the axes and asks; without a terminal
+  or with `--no-prompt` it fails and prints the `--axes-a/--axes-b` to use.
+  A size mismatch of the shared dimension is always an error (no
+  interpolation or truncation).
+- **Downsampling** is decimation, applied only to the output: the SVD uses the
+  full-resolution data and only the kept 4D points are computed. The
+  overflow rescale is computed from the full-resolution factors, so a
+  downsampled 4D is a subsample of the full one.
+- Not supported (the MATLAB script does): more than two spectra, MRS weighting,
+  extraction limits.
 
-## Modes (how the shared 1H dimension enters)
+## Modes (how the shared dimension enters)
 
-- `real`: reads a spectrum whose 1H is real. Same math as MATLAB.
-- `complex`: reads a spectrum whose 1H is complex and does the SVD of the
-  complex matrix. Only the real part of each 4D plane is computed and written.
+- `real`: reads a spectrum whose shared dimension is real. Same math as MATLAB.
+- `complex`: reads a spectrum whose shared dimension is complex and does the
+  SVD of the complex matrix. Only the real part of each 4D plane is computed
+  and written.
 - `split`: real and imaginary parts placed side by side as separate real
   points. Experimental.
+- `auto` (default): `real` or `complex` following the header quad flag.
 
-`covar.py` checks the input's 1H quad flag and refuses a spectrum of the
-wrong kind for the mode. Each mode reads its own file: `real` reads
-`HCcH_real.pipe`, the others read `HCcH_complex.pipe`.
+An explicit mode that contradicts the input is refused. A complex shared axis
+is combined into complex numbers whether nmrglue already did so (axis stored
+fastest) or the file holds interleaved real/imaginary points (as the example
+`HCcH_complex.pipe` does).
 
 ## Attribution
 
@@ -112,6 +127,7 @@ people and sources wherever reasonable:
   bit-identical, and the largest difference was ~1e-11 of the maximum
   (checked 2026-10-28). If the outputs differ, check the inputs and settings
   first.
+- **The package refactor is bit-identical.** The `pycovar` package reproduced the old `covar.py` exactly at full resolution for `real` and `complex` (data identical, header differing only in the default axis labels; 2026-11-04). The old `covar.py` itself is what was checked against MATLAB.
 - **Never give the MATLAB script a complex spectrum.** `read_spectrum`
   ignores quad flags, so it reads interleaved real/imaginary points as
   consecutive real points. This fails silently and gives a meaningless 4D.
