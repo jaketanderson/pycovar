@@ -11,3 +11,7 @@ fid
 
 .ipynb_checkpoints/
 .DS_store
+__pycache__/
+*.egg-info/
+.pytest_cache/
+*.log
