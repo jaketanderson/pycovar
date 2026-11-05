@@ -26,6 +26,10 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
+      # Required by claude-code-action: it mints an OIDC token to obtain its GitHub App
+      # token. Removing it fails with "Unable to get ACTIONS_ID_TOKEN_REQUEST_URL"
+      # (Copilot autofix / code scanning suggested removing it; that breaks the action).
+      id-token: write
 
     steps:
       - name: Checkout repository
