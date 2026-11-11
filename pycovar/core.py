@@ -142,6 +142,7 @@ def covariance_4D(spec_a, spec_b=None, *, lambda_factor=1.0, derivative=False,
                 (I_4D, J_4D, L_4D, M_4D), (I, J, L, M),
                 I_4D * J_4D * L_4D * M_4D * 4 / 1e9)
 
+    # "F" order is necessary since MATLAB follows the Fortran ordering and we want to match it
     stacked = np.vstack([spec_a.data.reshape(I * J, K, order="F"),
                          spec_b.data.reshape(L * M, K, order="F")])
     # MATLAB reads float32 data into doubles, so work in double precision to match

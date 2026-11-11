@@ -89,6 +89,7 @@ def load_pair(path_a, path_b=None, *, axes_a=None, axes_b=None, confirm_axes=Non
         for i in warns:
             logger.warning(i.message)
         if confirm_axes is None:
+            # Prompt the user to consider changing their axes
             raise AxisError(
                 "The axes look wrong:\n  " + "\n  ".join(i.message for i in warns)
                 + f"\nGive the permutations explicitly (axes_a / --axes-a, and "

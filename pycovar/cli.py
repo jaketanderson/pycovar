@@ -53,9 +53,6 @@ def build_parser():
                    help="Array-axis permutation for spectrum A (shared axis "
                         "last), e.g. 2,1,0. Skips the automatic check.")
     p.add_argument("--axes-b", metavar="P0,P1,P2", help="Same for spectrum B.")
-    p.add_argument("--no-prompt", action="store_true",
-                   help="Never ask about axes; fail with the permutations to "
-                        "pass instead.")
     p.add_argument("--log", default=None,
                    help="Log file (default: next to the output, <output>.log).")
     p.add_argument("--no-log", action="store_true", help="Do not write a log file.")
@@ -142,12 +139,12 @@ def main(argv=None):
 
     axes_a = parse_permutation(args.axes_a) if args.axes_a else None
     axes_b = parse_permutation(args.axes_b) if args.axes_b else None
-    interactive = not args.no_prompt and sys.stdin.isatty()
+    is_interactive: bool = sys.stdin.isatty()
     try:
         spec_a, spec_b = load_pair(
             args.spectra[0], args.spectra[1] if len(args.spectra) == 2 else None,
             axes_a=axes_a, axes_b=axes_b,
-            confirm_axes=prompt_for_axes if interactive else None)
+            confirm_axes=is_interactive)
         result = covariance_4D(spec_a, spec_b, lambda_factor=args.lambda_factor,
                                derivative=args.derivative, mode=args.mode,
                                downsample=args.downsample, labels=args.labels,

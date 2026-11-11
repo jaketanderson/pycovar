@@ -1,3 +1,5 @@
+# This file is a good recap for AI agents working in this repository for the first time.
+
 # pycovar
 
 Python port of a MATLAB script that builds a 4D NMR spectrum by covariance
